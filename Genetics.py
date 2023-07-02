@@ -26,15 +26,15 @@ import heapq
 if breeze:
     retreat()
 elif flash or steps:
-    if energy > attack_x:
+    if energy > attack_g:
         attack()
     else:
-        retreat()
+        retreat() # fugir
 elif energy < retreat_g:
-    retreat()
+    retreat() # pegar mais energia
 elif score < score_g:
     if fitness_to_gold < fitness_to_gold_g:
-        scout()
+        explorar()
     else:
         getGold()
 """

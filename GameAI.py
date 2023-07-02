@@ -209,15 +209,14 @@ class GameAI():
     
 
     def attack_g(self):
-        return self.genetics["attack"]
+        return 50
         
     
     def retreat_g(self):
-        return self.genetics["retreat"]
+        return 50
     
     def fitness_to_gold_g(self):
-        return self.genetics["fitness_to_gold"]
-    
+        return 50
     def fitness_to_gold(self):
         # considerando que o maximo de distancia possivel eh 100
         # e que o maximo de blocos explorado eh 59 x 34 = 2006

@@ -21,5 +21,6 @@ __email__ = "abaffa@inf.puc-rio.br"
 from Bot import Bot
 
 if __name__ == "__main__":
-    bots = Bot(0)
+    bots = [Bot(x,x) for x in range(0,1
+                                    )]
 
