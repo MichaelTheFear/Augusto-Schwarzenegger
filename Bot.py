@@ -31,7 +31,7 @@ import datetime
 # </summary>
 class Bot():
 
-    name = "INF1771 Bot Example1" # BOT NAME
+    name = "Augusto Schwarzenergger" # BOT NAME
     host = "atari.icad.puc-rio.br" # SERVER
 
     client = None
@@ -55,10 +55,11 @@ class Bot():
     # <summary>
     # Bot Constructor
     # </summary>
-    def __init__(self):
+    def __init__(self,version,genome):
 
+        self.name+= str(version)
         self.client = HandleClient()
-        self.gameAi = GameAI()
+        self.gameAi = GameAI(genome)
 
         # duration is in seconds
         self.timer1 = Timer(self.thread_interval, self.timer1_Tick)
@@ -357,7 +358,7 @@ class Bot():
 
             print("Connected")
             self.client.sendName(self.name)
-            #self.client.sendRGB(255,0,0)  # BOT COLOR
+            self.client.sendRGB(189, 52, 235)  # BOT COLOR
             self.client.sendRequestGameStatus()
             self.client.sendRequestUserStatus()
             self.client.sendRequestObservation()

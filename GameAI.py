@@ -32,6 +32,35 @@ class GameAI():
     score = 0
     energy = 0
 
+    redLight = False
+    greenLight = False
+    blueLight = False
+    blocked = False
+    steps = False
+    flash = False
+    breeze = False
+
+
+    genetics = {
+        "attack": 0,
+        "retreat": 0,
+        "fitness_to_gold": 0,
+        "how_much_explored": 0,
+        "genome": 0b0
+    }
+
+    n_blocos_explorados = 0
+
+    virado = False
+
+    energias = []
+    pocos = []
+    ouro = []
+    tps = []
+    
+    def __init__(self, genetics):
+        self.genetics = genetics
+
     # <summary>
     # Refresh player status
     # </summary>
@@ -136,32 +165,39 @@ class GameAI():
     # </summary>
     # <param name="o">list of observations</param>
     def GetObservations(self, o):
-
         #cmd = "";
         for s in o:
         
             if s == "blocked":
+                self.blocked = True
                 pass
             
             elif s == "steps":
+                self.steps = True
                 pass
             
             elif s == "breeze":
+                self.breeze = True
                 pass
 
             elif s == "flash":
+                self.flash = True
                 pass
 
             elif s == "blueLight":
+                self.blueLight = True
                 pass
 
             elif s == "redLight":
+                self.redLight = True
                 pass
 
             elif s == "greenLight":
+                self.greenLight = True
                 pass
 
             elif s == "weakLight":
+                self.weakLight = True
                 pass
 
 
@@ -172,31 +208,66 @@ class GameAI():
         pass
     
 
+    def attack_g(self):
+        return self.genetics["attack"]
+        
+    
+    def retreat_g(self):
+        return self.genetics["retreat"]
+    
+    def fitness_to_gold_g(self):
+        return self.genetics["fitness_to_gold"]
+    
+    def fitness_to_gold(self):
+        # considerando que o maximo de distancia possivel eh 100
+        # e que o maximo de blocos explorado eh 59 x 34 = 2006
+        # retorno deve ser de 0 a 100
+
+        return (self.n_blocos_explorados / 2006) * (self.get_dist_to_gold())
+
+    
+    def get_dist_to_gold(self):
+        return 0
+
     # <summary>
     # Get Decision
     # </summary>
     # <returns>command string to new decision</returns>
     def GetDecision(self):
+        if self.breeze:
+            self.retirada()
+        elif self.flash or self.steps:
+            if self.energy > self.attack_g():
+                self.ataque()
+            else:
+                self.retirada()
+        elif self.energy < self.retreat_g():
+            self.retirada()
+        elif self.fitness_to_gold() < self.fitness_to_gold_g():
+            self.explora()
+        else:
+            self.ao_ouro()
 
-        n = random.randint(0,7)
-        
+    def explora(self):
+        if self.virado:
+            self.virado = False
+            self.decisao = "andar"
+        else:
+            if random.random() > 0.3:
+                self.decisao = "andar" if random.random() > 0.1 else "atacar"
+            else:
+                self.virado = True
+                self.decisao = "virar_direita" if random.random() > 0.5 else "virar_esquerda"
 
-        if n == 0:
-            return "virar_direita"
-        elif n == 1:
-            return "virar_esquerda"
-        elif n == 2:
-            return "andar"
-        elif n == 3:
-            return "atacar"
-        elif n == 4:
-            return "pegar_ouro"
-        elif n == 5:
-            return "pegar_anel"
-        elif n == 6:
-            return "pegar_powerup"
-        elif n == 7:
-            return "andar_re"
+    def retirada(self):
+        self.explora()
+    
+    def ataque(self):
+        self.explora()
+    
+    def retornar(self):
+        self.explora()
 
-        return ""
-
+    def ao_ouro(self):
+        self.explora()
+    
