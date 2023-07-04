@@ -19,8 +19,15 @@ __email__ = "abaffa@inf.puc-rio.br"
 #############################################################
 
 from Bot import Bot
+from Endgame import EndGame
 
 if __name__ == "__main__":
-    bots = [Bot(x,x) for x in range(0,1
-                                    )]
-
+    [Bot(x,genetics = {
+        "attack": 50,
+        "retreat": 50,
+        "fitness_to_gold": 50,
+        "how_much_explored": 50,
+        "genome": x,
+        "a_estrela": 7
+    }) for x in range(1)]
+    

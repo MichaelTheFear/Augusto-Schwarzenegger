@@ -1,15 +1,18 @@
 import random
 import heapq
+from Bot import Bot
 # Genetic algortihm
 
 # Actions: scout, retreat, attack, return, getGold
 # Variables: (6 bits) energy, (10 bits) score , (1 bit) flash, (1 bit) brezeze,
 # (1 bit) steps, (4 bit) how_much_explored
 
-# 7 bits (atack_g)
-# 10 bits (score_g)
-# 7 bits (retreat_g)
-# 8 bits (fitness_to_gold_g)
+# 6 bits (atack_g) = 64
+# 7 bits (score_g) = 128
+# 6 bits (retreat_g) = 64
+# 6 bits (fitness_to_gold_g) = 64
+# 7 bits (a_estrela) = 128
+
 # 32 bits (total)
 # Genome: 32 bits (int)
 
@@ -39,12 +42,15 @@ elif score < score_g:
         getGold()
 """
 class Genetics:
-    population = 10
+    n_pop = 10
     # step 1
     # Generate initial population
+    def __init__(self,n_pop = 10):
+        self.n_pop = n_pop
+
     def generate_population(self):
         population = []
-        for i in range(self.population):
+        for i in range(self.n_pop):
             population.append(random.randint(0, 2**32 - 1))
         return population
 
@@ -53,7 +59,7 @@ class Genetics:
 
     def crossover(self, population:list[int], parents:list[int]):
         new_population = []
-        for i in range(self.population):
+        for i in range(self.n_pop):
             parent1 = random.choice(parents)
             parent2 = random.choice(parents)
             crossover_point = random.randint(0, 31)
@@ -61,17 +67,18 @@ class Genetics:
         return new_population
     
     def mutation(self, population:list[int]):
-        for i in range(self.population):
+        for i in range(self.n_pop):
             if random.randint(0, 100) < 5:
                 population[i] = population[i] ^ (1 << random.randint(0, 31))
         return population
 
-    def digivolve(self,bots:list[tuple[int, int]]):
+    def _digivolve(self,bots:list[tuple[int, int]]):
         population_with_fitness = []
         for bot in bots:
             population_with_fitness.append(bot[1])
         parents = self.select_parents(population_with_fitness)
-        population = self.crossover(population_with_fitness, parents)
+        p = [bots[i][0] for i in parents]
+        population = self.crossover(population_with_fitness, p)
         population = self.mutation(population)
         return population
     
@@ -80,17 +87,19 @@ class Genetics:
         max_score = 90_000
         max_retreat = 100
         max_fitness_to_gold = 100
+        max_a_estrela = 100
 
-        attack_g = (genome & 0b11111110000000000000000000000000) >> 25
-        score_g = (genome & 0b00000001111111111111100000000000) >> 15
-        retreat_g = (genome & 0b00000000000000000000011111100000) >> 10
-        fitness_to_gold_g = (genome & 0b00000000000000000000000000011111)
+        attack_g = genome & 0b111111
+        score_g = (genome >> 6) & 0b1111111
+        retreat_g = (genome >> 13) & 0b111111
+        fitness_to_gold_g = (genome >> 19) & 0b111111
+        a_estrela = (genome >> 25) & 0b1111111
 
-        # convert to range proper range
-        attack_g = int(attack_g / 2**7 * max_energy)
-        score_g = int(score_g / 2**10 * max_score)
-        retreat_g = int(retreat_g / 2**7 * max_retreat)
-        fitness_to_gold_g = int(fitness_to_gold_g / 2**8 * max_fitness_to_gold)
+        attack_g = int(attack_g / 63 * max_energy)
+        score_g = int(score_g / 127 * max_score)
+        retreat_g = int(retreat_g / 63 * max_retreat)
+        fitness_to_gold_g = int(fitness_to_gold_g / 63 * max_fitness_to_gold)
+        a_estrela = int(a_estrela / 127 * max_a_estrela)
 
 
         return {
@@ -98,5 +107,15 @@ class Genetics:
             "score": score_g,
             "retreat": retreat_g,
             "fitness_to_gold": fitness_to_gold_g,
+            "a_estrela": a_estrela,
             "genome": genome
         }
+    
+    def digivolve(self,bots:list[tuple[int, int]]) -> list[dict[str, int]]:
+        population = self._digivolve(bots)
+        g_dict = []
+        for genome in population:
+            g_dict.append(self.parse_to_dict(genome))
+
+        return g_dict
+            

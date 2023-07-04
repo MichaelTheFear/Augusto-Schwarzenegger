@@ -25,13 +25,15 @@ from Socket.HandleClient import HandleClient
 from dto.PlayerInfo import PlayerInfo
 from dto.ScoreBoard import ScoreBoard
 import datetime
+import os as OperatingSystem
+
 
 # <summary>
 # Bot Class
 # </summary>
 class Bot():
 
-    name = "Augusto Schwarzenergger" # BOT NAME
+    name = "Augusto Schwarzenergger🤖" # BOT NAME
     host = "atari.icad.puc-rio.br" # SERVER
 
     client = None
@@ -52,14 +54,15 @@ class Bot():
     msg = []
     msgSeconds = 0
 
+    lastStatus = False
     # <summary>
     # Bot Constructor
     # </summary>
-    def __init__(self,version,genome):
+    def __init__(self,version,genetics):
 
         self.name+= str(version)
         self.client = HandleClient()
-        self.gameAi = GameAI(genome)
+        self.gameAi = GameAI(genetics)
 
         # duration is in seconds
         self.timer1 = Timer(self.thread_interval, self.timer1_Tick)
@@ -353,15 +356,21 @@ class Bot():
 
 
     def SocketStatusChange(self):
-    
+        
         if self.client.connected:
-
             print("Connected")
             self.client.sendName(self.name)
             self.client.sendRGB(189, 52, 235)  # BOT COLOR
             self.client.sendRequestGameStatus()
             self.client.sendRequestUserStatus()
             self.client.sendRequestObservation()
-
+            if self.gameStatus == "Gameover" and self.lastStatus == False:
+                self.gameAi.mapa.clear_map()               
+                print("\n\n\nBORA BIL\n\n\n") 
+            if self.gameStatus== "gameOver":
+                self.lastStatus = True
+            else:
+                self.lastStatus = False
+                
         else:
             print("Disconnected")
