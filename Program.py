@@ -19,7 +19,6 @@ __email__ = "abaffa@inf.puc-rio.br"
 #############################################################
 
 from Bot import Bot
-from Endgame import EndGame
 
 if __name__ == "__main__":
     [Bot(x,genetics = {

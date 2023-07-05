@@ -21,7 +21,6 @@ __email__ = "abaffa@inf.puc-rio.br"
 import random
 from Map.Position import Position
 from AEstrela import Mapa
-from Endgame import EndGame
 
 # <summary>
 # Game AI Example
@@ -32,59 +31,39 @@ class GameAI():
     state = "ready"
     dir = "north"
     score = 0
-    energy = 1
+    energy = 0
 
-    redLight = False
-    greenLight = False
-    blueLight = False
+    genetics = { # genes
+        "attack": 30,
+        "retreat": 10,
+        "fitness_to_gold": 100,
+        "how_much_explored": 10,
+        "genome": 0b0,
+        "a_estrela": 20
+    }
+
+
+
+    decisao_atual = ""
+    t_pos = (-1,-1)
+    decisao = ""
+    obs = []
+    running = False
+
+    enemy = False # flags
+    flash = False
     blocked = False
     steps = False
-    flash = False
     breeze = False
+    redlight = False
+    bluelight = False
+    pos = (1,1) # posicao atual
 
-
-
-    genetics = {
-        "attack": 0,
-        "retreat": 0,
-        "fitness_to_gold": 0,
-        "how_much_explored": 0,
-        "genome": 0b0,
-        "a_estrela": 0
-    }
-
-    observacoes = {
-            "blocked": False,
-            "breeze": False,
-            "power": False,
-            "gold": False,
-            "inimigo": False,
-            "teleport": False,
-            "pos" : (-1,-1),
-            "dir": dir
-        }
-    
-    override = {
-        "flag": False,
-        "caminho": []
-    }
-
-    acoes = []
-    flag = False
-    virado = False
-    n_blocos_explorados = 1
-    
-    def get_ultimos_passos(self):
-        return [x for x in self.acoes if x != "atacar"]
-    
-    def insert_acao(self, acao):
-        self.acoes.insert(0, acao)
-        if len(self.acoes) > 7:
-            self.acoes.pop()
 
     def __init__(self, genetics):
         self.genetics = genetics
         self.mapa = Mapa(genetics["a_estrela"])
+        self.decision_maker = self.run_decision() # gerador de decisão
 
     # <summary>
     # Refresh player status
@@ -104,7 +83,6 @@ class GameAI():
         self.state = state
         self.score = score
         self.energy = energy
-
 
     # <summary>
     # Get list of observable adjacent positions
@@ -141,7 +119,6 @@ class GameAI():
         ret.Add(Position(self.player.x + 1, self.player.y + 1))
 
         return ret
-    
 
     # <summary>
     # Get next forward position
@@ -164,7 +141,59 @@ class GameAI():
                 ret = Position(self.player.x - 1, self.player.y)
 
         return ret
-    
+
+        return self.player
+    # <summary>
+    # Set player position
+    # </summary>
+    # <param name="x">x position</param>
+    # <param name="y">y position</param>
+    def SetPlayerPosition(self, x, y):
+        self.player.x = x
+        self.player.y = y
+
+    # <summary>
+    # Observations received
+    # </summary>
+    # <param name="o">list of observations</param>
+    def GetObservations(self, obs):
+        print("Observations: ", obs)
+        for o in obs: # seta observação
+            if "enemy" in o:
+                self.enemy = True
+            else:
+                self.enemy = False
+            if o=="blocked":
+                self.blocked = True
+            else:
+                self.blocked = False
+            
+            if "flash" == o:
+                self.flash = True
+            else:
+                self.flash = False
+                 
+            if "steps"==o:
+                self.steps = True
+            else:
+                self.steps = False
+
+            if "breeze"==o:
+                self.breeze = True
+            else:
+                self.breeze = False   
+        
+            if "redLight"==o:
+                self.redlight = True
+            else:
+                self.redlight = False
+
+            if "blueLight"==o:
+                self.bluelight = True
+            else:
+                self.bluelight = False
+        
+
 
     # <summary>
     # Player position
@@ -175,79 +204,16 @@ class GameAI():
 
 
     # <summary>
-    # Set player position
-    # </summary>
-    # <param name="x">x position</param>
-    # <param name="y">y position</param>
-    def SetPlayerPosition(self, x, y):
-        self.player.x = x
-        self.player.y = y
-
-    
-
-    # <summary>
-    # Observations received
-    # </summary>
-    # <param name="o">list of observations</param>
-    def GetObservations(self, o):
-        #cmd = "";
-        self.observacoes = {
-            "blocked": False,
-            "breeze": False,
-            "power": False,
-            "gold": False,
-            "inimigo": False,
-            "teleport": False,
-            "pos" : (-1,-1),
-            "dir": self.dir
-        }
-        for s in o:
-        
-            if s == "blocked":
-                self.blocked = True
-                self.observacoes["blocked"] = True
-                pass
-            
-            elif s == "steps":
-                self.steps = True
-                pass
-            
-            elif s == "breeze":
-                self.breeze = True
-                self.observacoes["breeze"] = True
-                pass
-
-            elif s == "flash":
-                self.observacoes["teleport"] = True
-                self.flash = True
-                pass
-
-            elif s == "blueLight":
-                self.blueLight = True
-                self.observacoes["gold"] = True
-                pass
-
-            elif s == "redLight":
-                self.redLight = True
-                self.observacoes["power"] = True
-                pass
-
-            elif s == "greenLight":
-                self.greenLight = True
-                pass
-
-            elif s == "weakLight":
-                self.weakLight = True
-                pass
-            elif "enemy" in s:
-                self.observacoes["inimigo"] = True
-
-
-
-    # <summary>
     # No observations received
     # </summary>
     def GetObservationsClean(self):
+        self.enemy = False # limpa observações
+        self.flash = False
+        self.blocked = False
+        self.steps = False
+        self.breeze = False
+        self.redlight = False
+        self.bluelight = False
         pass
     
 
@@ -260,239 +226,253 @@ class GameAI():
     def fitness_to_gold_g(self):
         return self.genetics["fitness_to_gold"]
     
-    def fitness_to_gold(self):
-        # considerando que o maximo de distancia possivel eh 100
-        # e que o maximo de blocos explorado eh 59 x 34 = 2006
-        # retorno deve ser de 0 a 100
-        
-        return (self.n_blocos_explorados / 2006) * (self.get_dist_to_gold())
+    def fitness_to_gold(self,pos): # fitness para procurar ouro
+        return (self.mapa.n_blocos_explorados / 2006) * (self.get_dist_to_gold(pos))
 
     
-    def get_dist_to_gold(self):
-        pos = self.GetPlayerPosition()
-        t_pos = (pos.x +1, pos.y+1)
+    def get_dist_to_gold(self,t_pos):
         gold = self.mapa.closestGold(t_pos)
+        if gold == None:
+            return 1000
         if abs(gold[0] + gold[1]) == (gold[1] + gold[0]):
             return self.mapa.distance(t_pos, gold)
         return 1000
+
+    #transforma o caminho gerado pelo a_estrela para uma lista de açoes do bot
+    def gerar_comandos(self,coordenadas, direcao, coordenada_atual):
+        comandos = [] # lista de comandos
+        x_atual, y_atual = coordenada_atual
+        dir_atual = direcao
+        for coordenada in coordenadas:
+            x_destino, y_destino = coordenada
+            if x_destino > x_atual:
+                #para o leste
+                if dir_atual == "north":
+                    comandos.append("virar_direita")
+                    comandos.append("andar")
+                elif dir_atual == "south":
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+                elif dir_atual == "west":
+                    comandos.append("virar_esquerda")
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+                elif dir_atual == "east":
+                    comandos.append("andar")
+
+                dir_atual = "east"
+
+            elif x_destino < x_atual:
+                #para o oeste
+                if dir_atual == "north":
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+                elif dir_atual == "south":
+                    comandos.append("virar_direita")
+                    comandos.append("andar")
+                elif dir_atual == "west":
+                    comandos.append("andar")
+                elif dir_atual == "east":
+                    comandos.append("virar_esquerda")
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+
+                dir_atual = "west"
+
+            elif y_destino < y_atual:
+                #para o norte
+                if dir_atual == "north":
+                    comandos.append("andar")
+                elif dir_atual == "south":
+                    comandos.append("virar_esquerda")
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+                elif dir_atual == "west":
+                    comandos.append("virar_direita")
+                    comandos.append("andar")
+                elif dir_atual == "east":
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+
+                dir_atual = "north"
+            elif y_destino > y_atual:
+                #para o sul
+                if dir_atual == "north":
+                    comandos.append("virar_esquerda")
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+                elif dir_atual == "south":
+                    comandos.append("andar")
+                elif dir_atual == "west":
+                    comandos.append("virar_esquerda")
+                    comandos.append("andar")
+                elif dir_atual == "east":
+                    comandos.append("virar_direita")
+                    comandos.append("andar")
+
+                dir_atual = "south"
+
+        x_atual,y_atual = x_destino, y_destino
+        return comandos
+
+
+
+        
+    def micro_decision(self) -> list[str]: # decisao de acao pequenas
+        resp = []
+        if self.bluelight or self.redlight:
+            resp = ["pegar_anel"]
+        elif self.blocked or self.breeze:
+            return resp + self.recuar()
+        elif self.enemy or self.steps:
+            return resp + self.decide_atacar()
+        
+        return resp
+        
+    def macro_decision(self) -> list[str]: # decisao de acoes grandes
+        return self.decisao_genetica()
+    
+    def behavior(self,decision) -> list[str]: # decisao de acoes grandes
+        magro_game = self.micro_decision()
+        if magro_game != []:
+            return magro_game + decision
+
+        return self.macro_decision()
+        
+    def decide_atacar(self): # decide se ataca ou foge
+        self.running = True
+        if self.energy > self.attack_g():
+            return ["atacar","atacar","virar_direita","atacar"] 
+        else:
+            return self.healar()
+        
+    def healar(self): # I need healing (foge)
+        pos = self.pos
+        direcao = self.dir
+        heal = self.mapa.closestPower(pos)
+        caminho = None
+        if pos == None:
+            heal = self.mapa.get_nao_visitado_mais_proximo(pos)
+            caminho = self.mapa.astar(pos, heal)
+        else:
+            caminho = self.mapa.astar(pos, heal)
+
+        if caminho == None or caminho == [] or caminho == [pos]:
+            return self.anda_vizinhanca(self.pos,self.dir)
+            
+        return self.gerar_comandos(caminho,direcao,pos)
+        
+    def decisao_genetica(self): # decide se procura ouro ou explora mais
+        self.running = True
+        pos = self.pos
+        if self.fitness_to_gold(pos) > self.fitness_to_gold_g():
+            print("ouro")
+            return self.ao_ouro(pos)
+        else:
+            print("explorar")
+            return self.anda_vizinhanca(self.pos,self.dir)
+
+    def ao_ouro(self,pos): # vai ate o ouro
+        self.running = True
+        gold = self.mapa.closestGold(pos)
+        caminho = None
+        if gold == None:
+            gold = self.mapa.get_nao_visitado_mais_proximo(pos)
+            caminho = self.mapa.astar(pos, gold)
+        else:
+            caminho = self.mapa.astar(pos, gold)
+
+        if caminho == None or caminho == [] or caminho == [pos]:
+            return self.anda_vizinhanca(self.pos,self.dir)
+
+        return self.gerar_comandos(caminho,self.dir,pos)
+
+    def run_decision(self): # pega proxima decisao
+        decision = ["andar"]
+        while True:
+
+            decision = self.behavior(decision)
+            if decision == [] or decision == None:
+                decision = self.anda_vizinhanca(self.pos,self.dir)
+
+            if decision.count("pega_anel") > 1:
+                decision.remove("pega_anel")
+            
+            if self.energy > 0:
+                print(decision)
+            yield decision.pop(0)
+            
+    
+    def anda_vizinhanca(self,pos,direcao): # anda em volta
+        vizinhos = self.mapa.get_vizinhanca(pos)
+        if vizinhos == []:
+            if random.random() < 0.2:
+                return [random.choice(["virar_direita","virar_esquerda"])]
+            else:
+                return ["atacar"] if random.random() < 0.3 else [random.choice(["andar_re","andar"])]
+
+        return self.gerar_comandos([vizinhos.pop(0)],direcao,pos)
+
+    
+    def recuar(self): # bater retirada
+        print("rodando recuar")
+        self.running = True
+        pos_atual = self.pos
+        direcao = self.dir
+        pos_final = self.mapa.closestTeleport(pos_atual)
+        caminho = None
+        if pos_final == None:
+            pos_final = self.mapa.get_nao_visitado_mais_proximo(pos_atual)
+            caminho = self.mapa.astar(pos_atual, pos_final)
+        else:
+            caminho = self.mapa.astar(pos_atual, pos_final)
+
+        if caminho == None or caminho == [] or caminho == [pos_atual]:
+            return self.anda_vizinhanca(self.pos,self.dir)
+
+        return self.gerar_comandos(caminho,direcao,pos_atual)
+    
+
+    def print_obs(self):
+        obs = ""
+        if self.blocked:
+            obs += "blocked "
+        if self.breeze:
+            obs += "breeze "
+        if self.flash:
+            obs += "flash "
+        if self.bluelight:
+            obs += "bluelight "
+        if self.redlight:
+            obs += "redlight "
+        if self.enemy:
+            obs += "enemy "
+        if self.steps:
+            obs += "steps "
+        print(self.score,obs)
+
 
     # <summary>
     # Get Decision
     # </summary>
     # <returns>command string to new decision</returns>
     def GetDecision(self):
-        
-        self.ratio = 0.1
-        posicao = self.GetPlayerPosition()
-        t_pos = (posicao.x +1, posicao.y+1)
-        self.observacoes["pos"] = t_pos
-        self.mapa.set_obeservations(self.observacoes)
-        decisao_atual = ""
-        if self.observacoes["inimigo"]:
-            self.decisao = "atacar"
-            decisao_atual = "atacar"
-        elif self.override["flag"]:
-            self.proximo_passo()
-            self.flag = False
-            decisao_atual = "continuar"
-        elif (self.observacoes["gold"] or self.observacoes["power"]) and not self.flag:
-            self.decisao = "pegar_anel"
-            self.flag = True
-            decisao_atual = "pegar_anel"
-            self.override["flag"] = False
-            if self.observacoes["gold"]:
-                self.mapa.resetGold(t_pos)
-            elif self.observacoes["power"]:
-                self.mapa.resetPower(t_pos)
-        elif self.observacoes["blocked"]:
-            self.retornar(t_pos)
-            self.flag = False
-            decisao_atual = "retornar"
-            self.override["flag"] = False
-        else:
-            self.flag = False
-            self.override["flag"] = False
-            if self.breeze: #caso sentir uma brisa
-                self.retornar(t_pos) #retornar pelo caminho que veio
-                decisao_atual = "retornar_arvore"
-            elif self.steps:
-                if self.energy > self.attack_g():
-                    self.ratio = 0.5
-                    self.explora()
-                    decisao_atual = "explorar_arvore"
-                else:
-                    self.retirada(t_pos)
-                    decisao_atual = "retirada_arvore"
-            elif self.energy < self.retreat_g():
-                self.assistencia()
-                decisao_atual = "assistencia_arvore"
-            elif self.fitness_to_gold() < self.fitness_to_gold_g():
-                self.explora()
-                decisao_atual = "explorar_arvore"
-            else:
-                self.ao_ouro(t_pos)
-                decisao_atual = "ao_ouro_arvore"
-                
-        if self.energy >0:
-            obs = ""
-            obs+= self.decisao+ " " + decisao_atual + " "
-            if self.observacoes["blocked"]:
-                obs += "blocked "
-            if self.observacoes["breeze"]:
-                obs += "breeze "
-            if self.observacoes["power"]:
-                obs += "power "
-            if self.observacoes["gold"]:
-                obs += "gold "
-            
-            self.mapa.print_map(t_pos)
-            
-
-        self.observacoes ={
-            "blocked": False,
-            "breeze": False,
-            "power": False,
-            "gold": False,
-            "inimigo": False,
-            "teleport": False,
-            "dir": self.dir,
-            "pos" : (-1,-1)
-        }
-        
-        self.insert_acao(self.decisao)
+        self.pos = (self.player.x+1 , self.player.y+1)
+        self.mapa.set_obeservations(
+                self.blocked,
+                self.breeze,
+                self.flash,
+                self.bluelight,
+                self.redlight,
+                self.dir,
+                self.pos
+            )
+        decisao = next(self.decision_maker)
         self.mapa.passar_tempo()
-        
-        return self.decisao
+        if self.energy > 0:
+            self.mapa.print_map(self.pos)
+            self.print_obs()
+        return decisao
 
 
-    def explora(self):
-        if random.random() > 0.3:
-            self.decisao = "andar" if random.random() > self.ratio else "atacar"
-        else:
-            self.virado = True
-            self.decisao = "virar_direita" if random.random() > 0.5 else "virar_esquerda"
 
-    def retirada(self,pos):
-        x,y = self.mapa.closestTeleport(pos)
-        if x == -1 or y == -1:
-            self.assistencia()
-            return
-        else:
-            self.override = {
-                "flag" : True,
-                "caminho": self.mapa.astar(pos,(x,y))
-            }
-            self.proximo_passo()
-
-        
-
-    def assistencia(self):
-        pos = self.GetPlayerPosition()
-        pos = (pos.x+1,pos.y+1)
-        x,y = self.mapa.closestPower(pos)
-        if x == -1 or y == -1:
-            self.explora()
-            return
-        else:
-            caminho = self.mapa.astar(pos,(x,y))
-            if caminho == None or caminho == []:
-                self.explora()
-                return
-            else:
-                caminho = caminho
-                self.override = {
-                    "flag" : True,
-                    "caminho": caminho
-                }
-                self.proximo_passo()
-        
-    
-    
-    def retornar(self,pos): 
-        x,y = self.mapa.get_nao_visitado_mais_proximo(pos)
-        if x+y == abs(x+y):
-            self.override = {
-                "flag" : True,
-                "caminho": self.mapa.astar(pos,(x,y))
-            }
-            self.proximo_passo()
-
-    def ultimos_passos(self):
-        return self.ultimos_passos
-        
-
-    def ao_ouro(self,pos):
-        x,y = self.mapa.closestGold(pos)
-        if x == -1 or y == -1:
-            self.explora()
-            return
-        else:
-            caminho = self.mapa.astar(pos,(x,y))
-            if caminho == None or caminho == []:
-                self.explora()
-                return
-            else:
-                caminho = caminho
-                self.override = {
-                    "flag" : True,
-                    "caminho": caminho
-                }
-        self.proximo_passo()
-
-    
-    def genome(self):
-        return self.genetics["genome"]
-
-
-    def proximo_passo(self):
-        if self.override["flag"]:
-            caminho = self.override["caminho"]
-            if caminho == None or caminho == []:
-                self.override["flag"] = False
-                self.explora()
-            else:
-                proximo = caminho.pop()
-                pos = self.GetPlayerPosition()
-                x = pos.x + 1
-                y = pos.y + 1
-                if proximo == (x,y+1): #subir
-                    if self.dir == 'south':
-                        self.decisao = "andar"
-                    elif self.dir == 'west':
-                        self.decisao = "virar_direita"
-                    else:
-                        self.decisao = "virar_esquerda"
-                elif proximo == (x,y-1): #descer
-                    if self.dir == 'north':
-                        self.decisao = "andar"
-                    elif self.dir == 'west':
-                        self.decisao = "virar_esquerda"
-                    else:
-                        self.decisao = "virar_direita"
-                elif proximo == (x+1,y): #direita
-                    if self.dir == 'west':
-                        self.decisao = "andar"
-                    elif self.dir == 'north':
-                        self.decisao = "virar_direita"
-                    else:
-                        self.decisao = "virar_esquerda"
-                elif proximo == (x-1,y): #esquerda
-                    if self.dir == 'east':
-                        self.decisao = "andar"
-                    elif self.dir == 'north':
-                        self.decisao = "virar_esquerda"
-                    else:
-                        self.decisao = "virar_direita"
-                else:
-                    self.override["flag"] = False
-                    self.explora()
-                # tem que levar em cosideracao o self.dir e a prox posicao
-                
-                
-
-        
-
-                
-            
-
-    

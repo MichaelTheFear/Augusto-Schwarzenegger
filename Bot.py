@@ -25,15 +25,13 @@ from Socket.HandleClient import HandleClient
 from dto.PlayerInfo import PlayerInfo
 from dto.ScoreBoard import ScoreBoard
 import datetime
-import os as OperatingSystem
-
 
 # <summary>
 # Bot Class
 # </summary>
 class Bot():
 
-    name = "Augusto Schwarzenergger🤖" # BOT NAME
+    name = "Taxi Driver" # BOT NAME
     host = "atari.icad.puc-rio.br" # SERVER
 
     client = None
@@ -41,7 +39,7 @@ class Bot():
     timer1 = None
     
     running = True
-    thread_interval = 1 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
+    thread_interval = 0.1 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
 
     playerList = {} #new Dictionary<long, PlayerInfo>
     shotList = [] #new List<ShotInfo>
@@ -54,13 +52,11 @@ class Bot():
     msg = []
     msgSeconds = 0
 
-    lastStatus = False
     # <summary>
     # Bot Constructor
     # </summary>
-    def __init__(self,version,genetics):
+    def __init__(self,index,genetics):
 
-        self.name+= str(version)
         self.client = HandleClient()
         self.gameAi = GameAI(genetics)
 
@@ -117,7 +113,6 @@ class Bot():
                             
                             else:
                                 o.append(cmd[1])
-
                             self.gameAi.GetObservations(o)
                         
                     else:
@@ -356,21 +351,16 @@ class Bot():
 
 
     def SocketStatusChange(self):
-        
+    
         if self.client.connected:
+
             print("Connected")
             self.client.sendName(self.name)
-            self.client.sendRGB(189, 52, 235)  # BOT COLOR
+            self.client.sendRGB(194, 143, 2)  # BOT COLOR
+            # codigo rgb do amarelo: 255,255,0
             self.client.sendRequestGameStatus()
             self.client.sendRequestUserStatus()
             self.client.sendRequestObservation()
-            if self.gameStatus == "Gameover" and self.lastStatus == False:
-                self.gameAi.mapa.clear_map()               
-                print("\n\n\nBORA BIL\n\n\n") 
-            if self.gameStatus== "gameOver":
-                self.lastStatus = True
-            else:
-                self.lastStatus = False
-                
+
         else:
             print("Disconnected")
